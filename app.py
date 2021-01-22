@@ -58,7 +58,8 @@ def get_pic(prefix, filename):
     }
     url = requests.post(GEN_IMAGES_PRESIGNED_URL, json=payload).content.decode()
 
-    return render_template("load_image.html", image=url)
+    # return render_template("load_image.html", image=url)
+    return url
 
 
 
@@ -93,7 +94,7 @@ def upload_file():
         cropper = FaceCropper(S3_BUCKET, f"processed-{file.filename}")
         local_file_name = cropper.generate(show_result=False)
         s3.upload_file(local_file_name, S3_BUCKET, f"{PROCESSED_FOLDER}/{local_file_name}")
-
+        os.remove(local_file_name)  # remove local file
         payload = {
             "object": f"{PROCESSED_FOLDER}/processed-{file.filename}"
         }
