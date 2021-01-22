@@ -47,6 +47,7 @@ def hello_world():
     # print(type(url))
     # print(url)
     # return render_template("load_image.html", image=url)
+    # harmless comment, 123
     return "hi"
 
 
@@ -102,7 +103,6 @@ def upload_file():
 
     else:
         return "file not allowed"
-
 
 def allowed_file(filename):
     return '.' in filename and \
