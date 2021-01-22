@@ -66,9 +66,3 @@ class FaceCropper(object):
             # saving the final output  
             data.save(self.object_key) 
             return self.object_key
-            # print("saving to s3...")
-            # # save_to_s3("test.png", f"result.png")
-            # # return upload_file_to_s3(self.object_key, self.bucket, f"{self.PROCESSED_FOLDER}/{self.object_key}")
-            # print(self.object_key)
-            # return upload_file_to_s3(self.object_key, self.bucket, "testing123.jpg")
-            # print("saved to s3")
