@@ -42,6 +42,10 @@ CLIENT_FOLDER = "client_pics"
 PROCESSED_FOLDER = "processed_pics"
 
 
+@app.route("/")
+def hello():
+    return "hello"
+
 # display S3 image file
 @app.route("/get_pic/<prefix>/<filename>", methods=['GET'])
 def get_pic(prefix, filename):
