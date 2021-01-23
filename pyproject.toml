@@ -10,6 +10,7 @@ Flask = "^1.1.2"
 boto3 = "^1.16.56"
 Flask-Cors = "^3.0.10"
 opencv-python = "^4.5.1"
+dotenv = "^0.0.5"
 
 [tool.poetry.dev-dependencies]
 

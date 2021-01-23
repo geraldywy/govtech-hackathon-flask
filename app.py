@@ -27,9 +27,9 @@ S3_LOCATION  = 'http://{}.s3.amazonaws.com/'.format(S3_BUCKET)
 app.config["SECRET_KEY"] = os.urandom(32)
 
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg' }
-# UPLOAD_FOLDER = 'static'
 
-
+# import model as a class and add in here for the image to run through it
+MODELS = [ FaceCropper ]
 
 s3 = boto3.client(
    "s3",
@@ -40,14 +40,6 @@ s3 = boto3.client(
 GEN_IMAGES_PRESIGNED_URL = "https://1f6mc4zh9j.execute-api.ap-southeast-1.amazonaws.com/testing/images"
 CLIENT_FOLDER = "client_pics"
 PROCESSED_FOLDER = "processed_pics"
-
-@app.route('/')
-def hello_world():
-    # url = requests.get(GEN_IMAGES_PRESIGNED_URL).content.decode()
-    # print(type(url))
-    # print(url)
-    # return render_template("load_image.html", image=url)
-    return "hi"
 
 
 # display S3 image file
@@ -61,8 +53,6 @@ def get_pic(prefix, filename):
     # return render_template("load_image.html", image=url)
     return url
 
-
-
 # this method handles processing logic
 @app.route("/upload-file", methods=["POST"])
 def upload_file():
@@ -72,66 +62,58 @@ def upload_file():
 
     file = request.files["user_file"]
 
-    """
-        These attributes are also available
-
-        file.filename               # The actual name of the file
-        file.content_type
-        file.content_length
-        file.mimetype
-
-    """
-
     if file.filename == "":
         return "Please specify a file"
 
     if file and allowed_file(file.filename):
-        file.filename = secure_filename(file.filename)
-        object_key = upload_file_to_s3(file, S3_BUCKET, f"{CLIENT_FOLDER}/{file.filename}")
-        s3.download_file(S3_BUCKET, object_key, f"processed-{file.filename}")
-        
-        # use face cropper here
-        cropper = FaceCropper(S3_BUCKET, f"processed-{file.filename}")
-        local_file_name = cropper.generate(show_result=False)
-        s3.upload_file(local_file_name, S3_BUCKET, f"{PROCESSED_FOLDER}/{local_file_name}")
-        os.remove(local_file_name)  # remove local file
-        payload = {
-            "object": f"{PROCESSED_FOLDER}/processed-{file.filename}"
-        }
-        url = requests.post(GEN_IMAGES_PRESIGNED_URL, json=payload).content.decode()
-        return url
+
+        # rename the file with random bytes
+        split_ext = os.path.splitext(file.filename)
+        file.filename = split_ext[0] + "-" + str(os.urandom(8)) + split_ext[1]
+        file.filename = secure_filename(file.filename) # randomize the names
+
+        CLIENT_FILE_IN_S3 = f"{CLIENT_FOLDER}/{file.filename}"
+        CLIENT_FILE_LOCAL = f"processed-{file.filename}"
+        PROCESSED_FILE_IN_S3 = f"{PROCESSED_FOLDER}/{file.filename}"
+
+        # upload to s3 as well, in case we want to do a feedback loop and also collect client pics
+        s3.upload_fileobj(file, S3_BUCKET, CLIENT_FILE_IN_S3)
+
+        # download locally to be ran through models
+        s3.download_file(S3_BUCKET, CLIENT_FILE_IN_S3, CLIENT_FILE_LOCAL)
+
+        return process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
 
     else:
         return "file not allowed"
 
+def process_image(local_file, processed_file_in_s3):
+    # use face cropper here, every model has to overwrite the existing local file
+    # we push a final upload to s3 once it runs through every model
+    # API of every model
+    # 1. instantiated with local file name to target
+    # 2. has a generate method which reads and overwrites from the same local file name 
+    for model in MODELS:
+        instance = model(local_file)
+        instance.generate(show_result=False)
+    
+
+    # save results, overwriting the s3 file version
+    s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
+
+    # lastly clean up the local copy to keep this server clean
+    os.remove(local_file)
+
+    # request for a new presigned url to the new image in s3 to display to user
+    payload = {
+        "object": f"{processed_file_in_s3}"
+    }
+    url = requests.post(GEN_IMAGES_PRESIGNED_URL, json=payload).content.decode()
+    return url
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# this file name given is local file copy, we overwrite it with the processed image and save
-# the processed image to s3 as well
-# delete the local copy after to keep this container lean
-# when user requests to download, we bring it over from s3 in another method
-def process_image(client_file_link):
-    time.sleep(5)  # mock response time
-    return "https://sagemaker-studio-q6rx2fxnipm.s3-ap-southeast-1.amazonaws.com/cropping_prediction/test.png" # hardcoded for frontend dev
-
-def upload_file_to_s3(file, bucket_name, object_key):
-    print("uploading to s3...")
-    try:
-        s3.upload_fileobj(
-            file,
-            bucket_name,
-            object_key
-        )
-        print("uploaded to s3")
-
-    except Exception as e:
-        print("Error uploading: ", e)
-        return e
-
-    return object_key
 
 
 if __name__ == '__main__':

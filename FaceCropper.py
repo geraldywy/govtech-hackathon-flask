@@ -5,11 +5,9 @@ import io
 
 class FaceCropper(object):
     
-    def __init__(self, bucket, object_key):
+    def __init__(self, object_key):
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
         self.face_cascade = face_cascade
-        self.bucket = bucket
         self.object_key = object_key
 
     def generate(self, show_result):
@@ -18,7 +16,6 @@ class FaceCropper(object):
             print("Can't open image file")
             return 0
     
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(img, 1.1, 3, minSize=(100, 100))
         if (faces is None):
             print('Failed to detect face')
@@ -27,16 +24,9 @@ class FaceCropper(object):
         if (show_result):
             for (x, y, w, h) in faces:
                 cv2.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
-            # plt.figure()
-            # plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            # plt.show
-            # cv2.imshow('img', img)
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
 
         facecnt = len(faces)
         print("Detected faces: %d" % facecnt)
-        i = 0
         height, width = img.shape[:2]
         print("[height, width] -", (height, width))
 
@@ -51,18 +41,13 @@ class FaceCropper(object):
             y2 = min(y + h + y_offset_bottom, height)
             x1 = max(0, x - x_offset)
             x2 = min(x + w + x_offset, width)
-            # print(" x - x_offset", x, x_offset)
             
             print("[cropped coord] - ", y1,y2,x1,x2)
             faceimg = img[y1:y2, x1:x2]
-            # plt.figure()
             final = cv2.cvtColor(faceimg, cv2.COLOR_BGR2RGB)
-            # plt.imshow(final)
-            # plt.show
             
             print("saving locally...")
             data = Image.fromarray(final) 
             print("saved locally")
             # saving the final output  
-            data.save(self.object_key) 
-            return self.object_key
+            data.save(self.object_key)
