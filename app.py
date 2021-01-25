@@ -86,11 +86,14 @@ def upload_file():
         try:
             # upload original to s3 as well, in case we want to do a feedback loop and also collect client pics
             s3.upload_fileobj(file, S3_BUCKET, CLIENT_FILE_IN_S3)
-
+        except:
+            return f"Error uploading: {file.filename} to bucket: {S3_BUCKET} as object: {CLIENT_FILE_IN_S3}"
+        try:
             # download locally to be ran through models
             s3.download_file(S3_BUCKET, CLIENT_FILE_IN_S3, CLIENT_FILE_LOCAL)
         except:
-            return "done"
+            return f"Error downloading client file"
+        
 
         return process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
         
@@ -109,8 +112,6 @@ def process_image(local_file, processed_file_in_s3):
             s3.download_file(S3_BUCKET, 'resources/u2netp.pth', 'resources/u2netp.pth')
         except Exception as e:
             return "error downloading resources file: " + e
-
-    return "done!"
 
     # use face cropper here, every model has to overwrite the existing local file
     # we push a final upload to s3 once it runs through every model
