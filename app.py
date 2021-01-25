@@ -44,7 +44,7 @@ PROCESSED_FOLDER = "processed_pics"
 
 @app.route("/")
 def hello():
-    return "hello"
+    return "hello, this is an updated image"
 
 # display S3 image file
 @app.route("/get_pic/<prefix>/<filename>", methods=['GET'])
@@ -119,6 +119,6 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+# expose endpoint
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0')
