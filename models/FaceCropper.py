@@ -1,7 +1,5 @@
 import cv2
 from PIL import Image
-import io
-# from app import upload_file_to_s3
 
 class FaceCropper(object):
     
@@ -10,7 +8,7 @@ class FaceCropper(object):
         self.face_cascade = face_cascade
         self.object_key = object_key
 
-    def generate(self, show_result):
+    def generate(self, show_result=False):
         img = cv2.imread(self.object_key)
         if (img is None):
             print("Can't open image file")

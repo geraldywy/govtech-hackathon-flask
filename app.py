@@ -1,4 +1,4 @@
-from FaceCropper import FaceCropper
+from models import FaceCropper, BackgroundRemover
 from flask import Flask, render_template, request, redirect, url_for
 from flask_cors import CORS, cross_origin
 import os
@@ -9,9 +9,9 @@ import logging
 import boto3
 from botocore.exceptions import ClientError
 import requests
-from flask import jsonify
-# from s3_api import upload_file_to_s3
+from helper import helper
 
+# load env variables
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
@@ -29,7 +29,7 @@ app.config["SECRET_KEY"] = os.urandom(32)
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg' }
 
 # import model as a class and add in here for the image to run through it
-MODELS = [ FaceCropper ]
+MODELS = [ FaceCropper, BackgroundRemover ]
 
 s3 = boto3.client(
    "s3",
@@ -37,22 +37,23 @@ s3 = boto3.client(
    aws_secret_access_key=S3_SECRET
 )
 
-GEN_IMAGES_PRESIGNED_URL = "https://1f6mc4zh9j.execute-api.ap-southeast-1.amazonaws.com/testing/images"
+# ensure prerequestites are downloaded
+if not (os.path.exists("resources/u2net.pth") and os.path.exists('resources/u2netp.pth')):
+    s3.download_file(S3_BUCKET, 'resources/u2net.pth', 'resources/u2net.pth')
+    s3.download_file(S3_BUCKET, 'resources/u2netp.pth', 'resources/u2netp.pth')
+
 CLIENT_FOLDER = "client_pics"
 PROCESSED_FOLDER = "processed_pics"
 
 
 @app.route("/")
 def hello():
-    return "hello, this is an updated image, once again updated."
+    return "hello! 😃"
 
 # display S3 image file
 @app.route("/get_pic/<prefix>/<filename>", methods=['GET'])
-def get_pic(prefix, filename):
-    payload = {
-        "object": f"{prefix}/{filename}"
-    }
-    url = requests.post(GEN_IMAGES_PRESIGNED_URL, json=payload).content.decode()
+def get_file(prefix, filename):
+    url = helper.get_file(f"{prefix}/{filename}")
 
     # return render_template("load_image.html", image=url)
     return url
@@ -80,7 +81,7 @@ def upload_file():
         CLIENT_FILE_LOCAL = f"processed-{file.filename}"
         PROCESSED_FILE_IN_S3 = f"{PROCESSED_FOLDER}/{file.filename}"
 
-        # upload to s3 as well, in case we want to do a feedback loop and also collect client pics
+        # upload original to s3 as well, in case we want to do a feedback loop and also collect client pics
         s3.upload_fileobj(file, S3_BUCKET, CLIENT_FILE_IN_S3)
 
         # download locally to be ran through models
@@ -99,9 +100,8 @@ def process_image(local_file, processed_file_in_s3):
     # 2. has a generate method which reads and overwrites from the same local file name 
     for model in MODELS:
         instance = model(local_file)
-        instance.generate(show_result=False)
+        instance.generate()
     
-
     # save results, overwriting the s3 file version
     s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
 
@@ -109,10 +109,7 @@ def process_image(local_file, processed_file_in_s3):
     os.remove(local_file)
 
     # request for a new presigned url to the new image in s3 to display to user
-    payload = {
-        "object": f"{processed_file_in_s3}"
-    }
-    url = requests.post(GEN_IMAGES_PRESIGNED_URL, json=payload).content.decode()
+    url = helper.get_file(processed_file_in_s3)
     return url
 
 def allowed_file(filename):
