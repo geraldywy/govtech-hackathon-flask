@@ -93,10 +93,13 @@ def process_image(local_file, processed_file_in_s3):
 
     # ensure prerequestites are downloaded
     if not (os.path.exists("resources/u2net.pth") and os.path.exists('resources/u2netp.pth')):
-        os.mkdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources"))
-        print("downloading resources file")
-        s3.download_file(S3_BUCKET, 'resources/u2net.pth', 'resources/u2net.pth')
-        s3.download_file(S3_BUCKET, 'resources/u2netp.pth', 'resources/u2netp.pth')
+        try:
+            os.mkdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources"))
+            print("downloading resources file")
+            s3.download_file(S3_BUCKET, 'resources/u2net.pth', 'resources/u2net.pth')
+            s3.download_file(S3_BUCKET, 'resources/u2netp.pth', 'resources/u2netp.pth')
+        except Exception as e:
+            return "error downloading resources file: " + e
 
 
     # use face cropper here, every model has to overwrite the existing local file
