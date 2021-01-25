@@ -44,7 +44,7 @@ PROCESSED_FOLDER = "processed_pics"
 
 @app.route("/")
 def hello():
-    return "hello, this is an updated image"
+    return "hello, this is an updated image, once again updated."
 
 # display S3 image file
 @app.route("/get_pic/<prefix>/<filename>", methods=['GET'])
