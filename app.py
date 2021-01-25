@@ -47,6 +47,11 @@ PROCESSED_FOLDER = "processed_pics"
 def hello():
     return "hello! 😃"
 
+
+@app.route("/ping")
+def ping():
+    return "PONG!"
+
 # display S3 image file
 @app.route("/get_pic/<prefix>/<filename>", methods=['GET'])
 def get_file(prefix, filename):
