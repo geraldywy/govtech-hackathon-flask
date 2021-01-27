@@ -7,7 +7,6 @@ from torchvision import transforms
 import sys
 import os
 
-from helper import helper
 from . import data_loader
 from . import u2net
 
@@ -25,6 +24,8 @@ class BackgroundRemover:
         :param object_key: Name of the local file to read and write into
         :param small: True to use smaller model
         """
+
+        self.model_name = "Background Remover"
 
         self.object_key = object_key
 

@@ -1,15 +1,13 @@
-from models import FaceCropper, BackgroundRemover
 from flask import Flask, render_template, request, redirect, url_for
 from flask_cors import CORS, cross_origin
 import os
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-import time
-import logging
 import boto3
-from botocore.exceptions import ClientError
-import requests
 from helper import helper
+from flask_api import status
+
+from models import FaceCropper, BackgroundRemover, Centralize
 
 # load env variables
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -26,10 +24,12 @@ S3_LOCATION  = 'http://{}.s3.amazonaws.com/'.format(S3_BUCKET)
 
 app.config["SECRET_KEY"] = os.urandom(32)
 
-ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg' }
+ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp' }
 
 # import model as a class and add in here for the image to run through it
-MODELS = [ FaceCropper, BackgroundRemover ]
+MODELS = [ FaceCropper,  BackgroundRemover, Centralize ]
+PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat']
+
 
 s3 = boto3.client(
    "s3",
@@ -37,16 +37,12 @@ s3 = boto3.client(
    aws_secret_access_key=S3_SECRET
 )
 
-
-
 CLIENT_FOLDER = "client_pics"
 PROCESSED_FOLDER = "processed_pics"
-
 
 @app.route("/")
 def hello():
     return "hello! 😃"
-
 
 @app.route("/ping")
 def ping():
@@ -57,7 +53,6 @@ def ping():
 def get_file(prefix, filename):
     url = helper.get_file(f"{prefix}/{filename}")
 
-    # return render_template("load_image.html", image=url)
     return url
 
 # this method handles processing logic
@@ -99,28 +94,23 @@ def upload_file():
         
 
     else:
-        return "file not allowed"
+        return "Illegal file extension", status.HTTP_400_BAD_REQUEST
 
 def process_image(local_file, processed_file_in_s3):
 
-    # ensure prerequestites are downloaded
-    if not (os.path.exists("resources/u2net.pth") and os.path.exists('resources/u2netp.pth')):
-        try:
-            os.mkdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources"))
-            print("downloading resources file")
-            s3.download_file(S3_BUCKET, 'resources/u2net.pth', 'resources/u2net.pth')
-            s3.download_file(S3_BUCKET, 'resources/u2netp.pth', 'resources/u2netp.pth')
-        except Exception as e:
-            return "error downloading resources file: " + e
+    if not ensure_prereq():
+        return "Failed loading in pre-req resources", status.HTTP_503_SERVICE_UNAVAILABLE
 
-    # use face cropper here, every model has to overwrite the existing local file
     # we push a final upload to s3 once it runs through every model
     # API of every model
     # 1. instantiated with local file name to target
     # 2. has a generate method which reads and overwrites from the same local file name 
     for model in MODELS:
         instance = model(local_file)
-        instance.generate()
+        try:
+            instance.generate()
+        except:
+            print("Failed for " + instance.model_name)
     
     # save results, overwriting the s3 file version
     s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
@@ -136,6 +126,25 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+def ensure_prereq():
+    # ensure prerequestites are downloaded
+    for req in PRE_REQ:
+        if not os.path.exists(req):
+            try:
+                if not os.path.isdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources")):
+                    os.mkdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources"))
+                s3.download_file(S3_BUCKET, req, req)
+            except Exception as e:
+                return False
+    
+    return True
+
+
 # expose endpoint
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
+
+
+
+    

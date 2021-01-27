@@ -4,6 +4,9 @@ from PIL import Image
 class FaceCropper(object):
     
     def __init__(self, object_key):
+
+        self.model_name = "Face Cropper"
+
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         self.face_cascade = face_cascade
         self.object_key = object_key
@@ -24,12 +27,12 @@ class FaceCropper(object):
                 cv2.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
 
         facecnt = len(faces)
-        print("Detected faces: %d" % facecnt)
+        # print("Detected faces: %d" % facecnt)
         height, width = img.shape[:2]
-        print("[height, width] -", (height, width))
+        # print("[height, width] -", (height, width))
 
         for (x, y, w, h) in faces:
-            print("detected [x,y,w,h] - ", x,y,w,h)
+            # print("detected [x,y,w,h] - ", x,y,w,h)
 
             # x is width, y is height
             y_offset_bottom = int((h) * 0.5)
@@ -40,12 +43,12 @@ class FaceCropper(object):
             x1 = max(0, x - x_offset)
             x2 = min(x + w + x_offset, width)
             
-            print("[cropped coord] - ", y1,y2,x1,x2)
+            # print("[cropped coord] - ", y1,y2,x1,x2)
             faceimg = img[y1:y2, x1:x2]
             final = cv2.cvtColor(faceimg, cv2.COLOR_BGR2RGB)
             
             print("saving locally...")
             data = Image.fromarray(final) 
             print("saved locally")
-            # saving the final output  
+            # saving the final output by overwriting
             data.save(self.object_key)
