@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for
-from flask_cors import CORS, cross_origin
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -7,7 +7,7 @@ import boto3
 from helper import helper
 from flask_api import status
 
-from models import FaceCropper, BackgroundRemover, Centralize
+from models import FaceCropper, BackgroundRemover, Centralize, SmileDetector
 
 # load env variables
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -28,6 +28,7 @@ ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp'
 
 # import model as a class and add in here for the image to run through it
 MODELS = [ FaceCropper,  BackgroundRemover, Centralize, ]
+DETECTORS = [ SmileDetector ]
 PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat']
 
 s3 = boto3.client(
@@ -82,9 +83,18 @@ def upload_file():
         except:
             return f"Error downloading client file"
         
+        processed_image_url = process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
+        details = {
+            "image_url": processed_image_url
+        }
+        issues = check_issues(CLIENT_FILE_LOCAL)
+        details.update({
+            "issues": issues
+        })
 
-        return process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
-        
+        # remove the local file once done
+        os.remove(CLIENT_FILE_LOCAL)
+        return jsonify(details)
 
     else:
         return "Illegal file extension", status.HTTP_400_BAD_REQUEST
@@ -106,11 +116,21 @@ def process_image(local_file, processed_file_in_s3):
     
     # save results, overwriting the s3 file version
     s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
-    os.remove(local_file)
 
     # request for a new presigned url to the new image in s3 to display to user
     url = helper.get_file(processed_file_in_s3)
     return url
+
+def check_issues(local_file):
+    issues = []
+    # run through the detectors model here
+    for detector in DETECTORS:
+        detector_instance = detector()
+        warning_message = detector_instance.detect(local_file)
+        if warning_message:
+            issues.append(warning_message)
+    
+    return issues
 
 def allowed_file(filename):
     return '.' in filename and \
