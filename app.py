@@ -31,6 +31,7 @@ MODELS = [ FaceCropper,  BackgroundRemover, Centralize, ]
 DETECTORS = [ SmileDetector ]
 PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat', 'resources/smile.hdf5', 'haarcascade_frontalface_default.xml']
 
+
 s3 = boto3.client(
    "s3",
    aws_access_key_id=S3_KEY,
