@@ -54,11 +54,12 @@ class SmileDetector():
         image = cv2.imread(image_name)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(gray, 1.1, 3, minSize=(100, 100))
+        face_clip = None
         for (x,y,w,h) in faces:
             face_clip = gray[y:y+h, x:x+w]
-        
-        resize_face_clip = cv2.resize(face_clip,(height,width),interpolation=cv2.INTER_AREA)
-        processed_image = img_to_array(resize_face_clip)/255.0 # normalise
+            resize_face_clip = cv2.resize(face_clip,(height,width),interpolation=cv2.INTER_AREA)
+            processed_image = img_to_array(resize_face_clip)/255.0 # normalise
+            
         
         return processed_image
 
@@ -69,12 +70,14 @@ class SmileDetector():
 
         # Restore the weights
         model.load_weights(self.model_path)
+        try:
+            processed_image = self.process_one_image(image_name)
 
-        processed_image = self.process_one_image(image_name)
+            processed_image = processed_image.reshape(1,32,32,1)
 
-        processed_image = processed_image.reshape(1,32,32,1)
-
-        prediction = model.predict(processed_image)
-        return self.warning_message if prediction >= 0.5 else None
-
+            prediction = model.predict(processed_image)
+            return self.warning_message if prediction >= 0.5 else None
+        except:
+            print("Failed for smile detector")
+            return None
 
