@@ -54,7 +54,7 @@ class SmileDetector():
         image = cv2.imread(image_name)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(gray, 1.1, 3, minSize=(100, 100))
-        face_clip = None
+        processed_image = None 
         for (x,y,w,h) in faces:
             face_clip = gray[y:y+h, x:x+w]
             resize_face_clip = cv2.resize(face_clip,(height,width),interpolation=cv2.INTER_AREA)
