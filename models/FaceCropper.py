@@ -26,7 +26,7 @@ class FaceCropper(object):
             for (x, y, w, h) in faces:
                 cv2.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
 
-        facecnt = len(faces)
+        # facecnt = len(faces)
         # print("Detected faces: %d" % facecnt)
         height, width = img.shape[:2]
         # print("[height, width] -", (height, width))
@@ -35,9 +35,9 @@ class FaceCropper(object):
             # print("detected [x,y,w,h] - ", x,y,w,h)
 
             # x is width, y is height
-            y_offset_bottom = int((h) * 0.5)
-            y_offset_top = int((h) * 0.3)
-            x_offset = int((w) * 0.2) # equal for left and right
+            y_offset_bottom = int((h) * 1)
+            y_offset_top = int((h) * 1)
+            x_offset = int((w) * 0.5) # equal for left and right
             y1 = max(0,y - y_offset_top)
             y2 = min(y + h + y_offset_bottom, height)
             x1 = max(0, x - x_offset)

@@ -2,7 +2,6 @@ FROM ubuntu:20.04
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Singapore
 
-
 RUN apt-get update -y && \
     apt-get install -y python3.8 \
     libgl1-mesa-glx \

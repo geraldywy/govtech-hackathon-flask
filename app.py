@@ -27,9 +27,8 @@ app.config["SECRET_KEY"] = os.urandom(32)
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp' }
 
 # import model as a class and add in here for the image to run through it
-MODELS = [ FaceCropper,  BackgroundRemover, Centralize ]
+MODELS = [ FaceCropper,  BackgroundRemover, Centralize, ]
 PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat']
-
 
 s3 = boto3.client(
    "s3",
@@ -44,15 +43,10 @@ PROCESSED_FOLDER = "processed_pics"
 def hello():
     return "hello! 😃"
 
-@app.route("/ping")
-def ping():
-    return "PONG!"
-
-# display S3 image file
+# get a presigned url to access an S3 file
 @app.route("/get_pic/<prefix>/<filename>", methods=['GET'])
 def get_file(prefix, filename):
     url = helper.get_file(f"{prefix}/{filename}")
-
     return url
 
 # this method handles processing logic
@@ -72,14 +66,13 @@ def upload_file():
         # rename the file with random bytes
         split_ext = os.path.splitext(file.filename)
         file.filename = split_ext[0] + "-" + str(os.urandom(8)) + split_ext[1]
-        file.filename = secure_filename(file.filename) # randomize the names
+        file.filename = secure_filename(file.filename)
 
         CLIENT_FILE_IN_S3 = f"{CLIENT_FOLDER}/{file.filename}"
         CLIENT_FILE_LOCAL = f"processed-{file.filename}"
         PROCESSED_FILE_IN_S3 = f"{PROCESSED_FOLDER}/{file.filename}"
 
         try:
-            # upload original to s3 as well, in case we want to do a feedback loop and also collect client pics
             s3.upload_fileobj(file, S3_BUCKET, CLIENT_FILE_IN_S3)
         except:
             return f"Error uploading: {file.filename} to bucket: {S3_BUCKET} as object: {CLIENT_FILE_IN_S3}"
@@ -101,7 +94,6 @@ def process_image(local_file, processed_file_in_s3):
     if not ensure_prereq():
         return "Failed loading in pre-req resources", status.HTTP_503_SERVICE_UNAVAILABLE
 
-    # we push a final upload to s3 once it runs through every model
     # API of every model
     # 1. instantiated with local file name to target
     # 2. has a generate method which reads and overwrites from the same local file name 
@@ -114,8 +106,6 @@ def process_image(local_file, processed_file_in_s3):
     
     # save results, overwriting the s3 file version
     s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
-
-    # lastly clean up the local copy to keep this server clean
     os.remove(local_file)
 
     # request for a new presigned url to the new image in s3 to display to user
