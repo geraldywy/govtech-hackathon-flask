@@ -8,8 +8,8 @@ from tensorflow.keras.layers import Layer,Conv2D,Activation,MaxPool2D,Dense,Flat
 
 class SmileDetector():
     
-    def __init__(self, face_cascade="resources/haarcascade_frontalface_default.xml", model_path="resources/smile.hdf5"):
-        self.face_cascade = cv2.CascadeClassifier(face_cascade)
+    def __init__(self, model_path="resources/smile.hdf5"):
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         self.model_path = model_path
         self.warning_message = "Smile detected!"
         self.input_shape = (32,32,1)
