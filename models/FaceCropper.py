@@ -35,8 +35,8 @@ class FaceCropper(object):
             # print("detected [x,y,w,h] - ", x,y,w,h)
 
             # x is width, y is height
-            y_offset_bottom = int((h) * 1)
-            y_offset_top = int((h) * 1)
+            y_offset_bottom = int((h) * 0.6)
+            y_offset_top = int((h) * 0.7)
             x_offset = int((w) * 0.5) # equal for left and right
             y1 = max(0,y - y_offset_top)
             y2 = min(y + h + y_offset_bottom, height)
