@@ -83,6 +83,7 @@ def upload_file():
             s3.download_file(S3_BUCKET, CLIENT_FILE_IN_S3, CLIENT_FILE_LOCAL)
         except:
             return f"Error downloading client file"
+            
         
         processed_image_url = process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
         details = {
