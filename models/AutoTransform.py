@@ -29,12 +29,7 @@ LANDMARKS_PICKED = [
 ]
 CANVAS_SCALING_WARN_THRESHOLD = 1.1
 
-img_train = cv2.resize(
-    cv2.imread("resources/singapore-passport-photo.jpg"),
-    None,
-    fx=0.2,
-    fy=0.2
-)
+
 
 
 def make_transform_matrix(
@@ -138,11 +133,20 @@ def overlay_landmarks(
 
 
 class PortraitAutoTransform:
-    def __init__(self, object_key, train_image: Union[str, np.array] = img_train):
+    def __init__(self, object_key):
         """
         :param object_key: local file name
         :param train_image: path of ideal portrait or as a image array
         """
+
+        train_image = cv2.resize(
+            cv2.imread("resources/singapore-passport-photo.jpg"),
+            None,
+            fx=0.2,
+            fy=0.2
+        )
+        self.train_image = train_image
+        
         if isinstance(train_image, str):
             self.train_image = cv2.imread(train_image)
         else:
