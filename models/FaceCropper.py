@@ -47,8 +47,6 @@ class FaceCropper(object):
             faceimg = img[y1:y2, x1:x2]
             final = cv2.cvtColor(faceimg, cv2.COLOR_BGR2RGB)
             
-            print("saving locally...")
             data = Image.fromarray(final) 
-            print("saved locally")
             # saving the final output by overwriting
             data.save(self.object_key)

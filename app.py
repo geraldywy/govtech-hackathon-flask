@@ -7,7 +7,7 @@ import boto3
 from helper import helper
 from flask_api import status
 
-from models import FaceCropper, BackgroundRemover, Centralize, SmileDetector
+from models import FaceCropper, BackgroundRemover, Centralize, SmileDetector, AutoTransform
 
 # load env variables
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -27,9 +27,10 @@ app.config["SECRET_KEY"] = os.urandom(32)
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp' }
 
 # import model as a class and add in here for the image to run through it
-MODELS = [ FaceCropper,  BackgroundRemover, Centralize, ]
+MODELS = [  AutoTransform,   ]
 DETECTORS = [ SmileDetector ]
-PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat', 'resources/smile.hdf5']
+# DETECTORS = []
+PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat', 'resources/smile.hdf5', 'resources/singapore-passport-photo.jpg']
 
 
 s3 = boto3.client(
@@ -83,16 +84,15 @@ def upload_file():
             s3.download_file(S3_BUCKET, CLIENT_FILE_IN_S3, CLIENT_FILE_LOCAL)
         except:
             return f"Error downloading client file"
-            
+
         
         processed_image_url = process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
-        details = {
-            "image_url": processed_image_url
-        }
         issues = check_issues(CLIENT_FILE_LOCAL)
-        details.update({
+
+        details = {
+            "image_url": processed_image_url,
             "issues": issues
-        })
+        }
 
         # remove the local file once done
         os.remove(CLIENT_FILE_LOCAL)
@@ -111,10 +111,10 @@ def process_image(local_file, processed_file_in_s3):
     # 2. has a generate method which reads and overwrites from the same local file name 
     for model in MODELS:
         instance = model(local_file)
-        try:
-            instance.generate()
-        except:
-            print("Failed for " + instance.model_name)
+        # try:
+        instance.generate()
+    # except Exception as e:
+        # print("Failed for", instance.model_name, "Error: ", str(e))
     
     # save results, overwriting the s3 file version
     s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
@@ -128,9 +128,12 @@ def check_issues(local_file):
     # run through the detectors model here
     for detector in DETECTORS:
         detector_instance = detector()
-        warning_message = detector_instance.detect(local_file)
-        if warning_message:
-            issues.append(warning_message)
+        try:
+            warning_message = detector_instance.detect(local_file)
+            if warning_message:
+                issues.append(warning_message)
+        except Exception as e:
+            print("failed for", detector_instance.name, "Error:", e)
     
     return issues
 

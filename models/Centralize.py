@@ -56,7 +56,5 @@ class Centralize(object):
                               borderMode=cv2.BORDER_CONSTANT,
                               borderValue=[255, 255, 255])
                               
-        print("saving locally...")
         # saving the final output by overwriting
         cv2.imwrite(self.object_key, final)
-        print("saved locally")

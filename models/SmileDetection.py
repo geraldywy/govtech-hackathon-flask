@@ -13,6 +13,8 @@ class SmileDetector():
         self.model_path = model_path
         self.warning_message = "Smile detected!"
         self.input_shape = (32,32,1)
+
+        self.name = "Smile detector"
         
 
     def create_model(self):
@@ -43,8 +45,6 @@ class SmileDetector():
         model.compile(loss='binary_crossentropy',
                     optimizer='adam',
                     metrics=['accuracy'])
-        
-        model.summary()
         
         return model
 
@@ -77,7 +77,7 @@ class SmileDetector():
 
             prediction = model.predict(processed_image)
             return self.warning_message if prediction >= 0.5 else None
-        except:
-            print("Failed for smile detector")
+        except Exception as e:
+            print("Failed for smile detector ", e)
             return None
 
