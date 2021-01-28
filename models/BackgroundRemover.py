@@ -124,7 +124,7 @@ class BackgroundRemover:
         return bio.getbuffer()
 
     def generate(self):
-        temp_file = "test" + os.path.splitext(self.object_key)[1]
+        temp_file = "temp-" + self.object_key
         # using a temp file to buffer write into
         # will delete and rename to the processed client file
         with open(self.object_key, "rb") as input:

@@ -29,7 +29,6 @@ ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp'
 # import model as a class and add in here for the image to run through it
 MODELS = [  AutoTransform, BackgroundRemover  ]
 DETECTORS = [ SmileDetector ]
-# DETECTORS = []
 PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat', 'resources/smile.hdf5', 'resources/singapore-passport-photo.jpg']
 
 

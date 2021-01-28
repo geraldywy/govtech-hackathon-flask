@@ -145,8 +145,6 @@ class PortraitAutoTransform:
         """
         if isinstance(train_image, str):
             self.train_image = cv2.imread(train_image)
-            cv2.imshow("test", self.train_image)
-            cv2.waitKey(0)
         else:
             self.train_image = train_image
 
