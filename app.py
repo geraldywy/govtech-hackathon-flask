@@ -27,8 +27,9 @@ app.config["SECRET_KEY"] = os.urandom(32)
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp' }
 
 # import model as a class and add in here for the image to run through it
-MODELS = [  AutoTransform, BackgroundRemover  ]
+MODELS_BEFORE_DETECTION = [  AutoTransform ]
 DETECTORS = [ SmileDetector ]
+MODELS_AFTER_DETECTION = [ BackgroundRemover ]
 PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat', 'resources/smile.hdf5', 'resources/singapore-passport-photo.jpg']
 
 
@@ -85,8 +86,15 @@ def upload_file():
             return f"Error downloading client file"
 
         
-        processed_image_url = process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3)
+        process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3, MODELS_BEFORE_DETECTION)
         issues = check_issues(CLIENT_FILE_LOCAL)
+        process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3, MODELS_AFTER_DETECTION)
+
+        # save results, overwriting the s3 file version
+        s3.upload_file(CLIENT_FILE_LOCAL, S3_BUCKET, PROCESSED_FILE_IN_S3)
+
+        # request for a new presigned url to the new image in s3 to display to user
+        processed_image_url = helper.get_file(PROCESSED_FILE_IN_S3)
 
         details = {
             "image_url": processed_image_url,
@@ -100,7 +108,7 @@ def upload_file():
     else:
         return "Illegal file extension", status.HTTP_400_BAD_REQUEST
 
-def process_image(local_file, processed_file_in_s3):
+def process_image(local_file, processed_file_in_s3, models):
 
     if not ensure_prereq():
         return "Failed loading in pre-req resources", status.HTTP_503_SERVICE_UNAVAILABLE
@@ -108,19 +116,12 @@ def process_image(local_file, processed_file_in_s3):
     # API of every model
     # 1. instantiated with local file name to target
     # 2. has a generate method which reads and overwrites from the same local file name 
-    for model in MODELS:
+    for model in models:
         instance = model(local_file)
-        # try:
-        instance.generate()
-    # except Exception as e:
-        # print("Failed for", instance.model_name, "Error: ", str(e))
-    
-    # save results, overwriting the s3 file version
-    s3.upload_file(local_file, S3_BUCKET, processed_file_in_s3)
-
-    # request for a new presigned url to the new image in s3 to display to user
-    url = helper.get_file(processed_file_in_s3)
-    return url
+        try:
+            instance.generate()
+        except Exception as e:
+            print("Failed for", instance.model_name, "Error: ", str(e))
 
 def check_issues(local_file):
     issues = []
