@@ -9,12 +9,12 @@ import os
 
 from . import data_loader
 from . import u2net
-
+from .base.ModelBaseClass import ModelBaseClass
 
 r = lambda i: i.buffer.read() if hasattr(i, "buffer") else i.read()
 w = lambda o, data: o.buffer.write(data) if hasattr(o, "buffer") else o.write(data)
 
-class BackgroundRemover:
+class BackgroundRemover(ModelBaseClass):
     """
     Creates a u2-net based background remover object.
     """

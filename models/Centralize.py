@@ -1,9 +1,9 @@
 import numpy as np
 import dlib
 import cv2
+from .base.ModelBaseClass import ModelBaseClass
 
-
-class Centralize(object):
+class Centralize(ModelBaseClass):
     """
     Centralize an image using simple heuristic of centralizing nose.
     Initialize on an image.

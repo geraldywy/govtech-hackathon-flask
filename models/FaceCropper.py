@@ -1,7 +1,8 @@
 import cv2
 from PIL import Image
+from .base.ModelBaseClass import ModelBaseClass
 
-class FaceCropper(object):
+class FaceCropper(ModelBaseClass):
     
     def __init__(self, object_key):
 

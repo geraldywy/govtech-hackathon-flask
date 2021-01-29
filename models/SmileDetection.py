@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.preprocessing.image import img_to_array, array_to_img
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Layer,Conv2D,Activation,MaxPool2D,Dense,Flatten,Dropout
+from .base.DetectorBaseClass import DetectorBaseClass
 
-class SmileDetector():
+class SmileDetector(DetectorBaseClass):
     
     def __init__(self, model_path="resources/smile.hdf5"):
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')

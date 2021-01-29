@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 from typing import List, Optional, Tuple, Union
 from shapely.geometry import LineString, Polygon
+from .base.ModelBaseClass import ModelBaseClass
 
 FACIAL_LANDMARK_MODEL_PATH = "resources/shape_predictor_68_face_landmarks.dat"
 OVERLAY_OFFSET_X = 2
@@ -132,7 +133,7 @@ def overlay_landmarks(
     return overlay_img
 
 
-class PortraitAutoTransform:
+class PortraitAutoTransform(ModelBaseClass):
     def __init__(self, object_key):
         """
         :param object_key: local file name
