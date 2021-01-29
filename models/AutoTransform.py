@@ -180,7 +180,6 @@ class PortraitAutoTransform:
         """
         faces = self.face_cascade_detector.detectMultiScale(img, 1.1, 3, minSize=(30, 30))
         (x, y, w, h) = faces[0]
-        face_box = dlib.rectangle(x, y, x + w, y + h)
 
         predicted_landmarks = self.facial_landmark_predictor(
             image=img,
@@ -259,7 +258,7 @@ class PortraitAutoTransform:
         """
         Fits landmarks of input image to the training image
         :param debug_mode: if true returns image with training landmarks in green and transformed landmarks in blue
-        :crop_inside_input_canvas: if true, crops the image strictly within the input canvas
+        :param crop_inside_input_canvas: if true, crops the image strictly within the input canvas
         :return: fitted image
         """
         img = cv2.imread(self.object_key)
