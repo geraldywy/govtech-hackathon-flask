@@ -7,7 +7,7 @@ Images uploaded to S3 cannot be accessed publicly for security purposes. Instead
 
 ## Spinning up a local instance
 1. We have a local dockerfile ready.
-2. Additionally, we require a .env file with all the senstive variables. Note: The local instance is working with the same S3 bucket as the deployed app.
+2. Additionally, we require a .env file for a few other sensitive variables. Note: The local instance is working with the same S3 bucket as the deployed app.
 3. To build the image, run the command `docker build -t <name of your container> .` 
 4. To run: `docker run -p 5000:5000 <name of your container>`
 
