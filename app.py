@@ -27,7 +27,8 @@ app.config["SECRET_KEY"] = os.urandom(32)
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'jif', 'jfi', 'webp' }
 
 # import model as a class and add in here for the image to run through it
-MODELS_BEFORE_DETECTION = [  AutoTransform ]
+MODELS_BEFORE_DETECTION_1 = [  AutoTransform ]
+MODELS_BEFORE_DETECTION_2 = [  FaceCropper, Centralize ]
 DETECTORS = [ SmileDetector ]
 MODELS_AFTER_DETECTION = [ BackgroundRemover ]
 PRE_REQ = ['resources/u2net.pth', 'resources/u2netp.pth', 'resources/shape_predictor_68_face_landmarks.dat', 'resources/smile.hdf5', 'resources/singapore-passport-photo.jpg']
@@ -52,7 +53,64 @@ def get_file(prefix, filename):
     url = helper.get_file(f"{prefix}/{filename}")
     return url
 
-# this method handles processing logic
+# this method handles processing logic for webcam
+@app.route("/upload-file-webcam", methods=["POST"])
+def upload_file_webcam():
+
+    if "user_file" not in request.files:
+        return "No user_file key in request.files"
+
+    file = request.files["user_file"]
+
+    if file.filename == "":
+        return "Please specify a file"
+
+    if file and allowed_file(file.filename):
+
+        # rename the file with random bytes
+        split_ext = os.path.splitext(file.filename)
+        file.filename = split_ext[0] + "-" + str(os.urandom(8)) + split_ext[1]
+        file.filename = secure_filename(file.filename)
+
+        CLIENT_FILE_IN_S3 = f"{CLIENT_FOLDER}/{file.filename}"
+        CLIENT_FILE_LOCAL = f"processed-{file.filename}"
+        PROCESSED_FILE_IN_S3 = f"{PROCESSED_FOLDER}/{file.filename}"
+
+        try:
+            s3.upload_fileobj(file, S3_BUCKET, CLIENT_FILE_IN_S3)
+        except:
+            return f"Error uploading: {file.filename} to bucket: {S3_BUCKET} as object: {CLIENT_FILE_IN_S3}"
+        try:
+            # download locally to be ran through models
+            s3.download_file(S3_BUCKET, CLIENT_FILE_IN_S3, CLIENT_FILE_LOCAL)
+        except:
+            return f"Error downloading client file"
+
+        
+        process_image(CLIENT_FILE_LOCAL, MODELS_BEFORE_DETECTION_2)
+        issues = check_issues(CLIENT_FILE_LOCAL)
+        process_image(CLIENT_FILE_LOCAL, MODELS_AFTER_DETECTION)
+
+        # save results, overwriting the s3 file version
+        s3.upload_file(CLIENT_FILE_LOCAL, S3_BUCKET, PROCESSED_FILE_IN_S3)
+
+        # request for a new presigned url to the new image in s3 to display to user
+        processed_image_url = helper.get_file(PROCESSED_FILE_IN_S3)
+
+        details = {
+            "image_url": processed_image_url,
+            "issues": issues
+        }
+
+        # remove the local file once done
+        os.remove(CLIENT_FILE_LOCAL)
+        return jsonify(details)
+
+    else:
+        return "Illegal file extension", status.HTTP_400_BAD_REQUEST
+
+
+# this method handles processing logic for normal upload
 @app.route("/upload-file", methods=["POST"])
 def upload_file():
 
@@ -86,9 +144,9 @@ def upload_file():
             return f"Error downloading client file"
 
         
-        process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3, MODELS_BEFORE_DETECTION)
+        process_image(CLIENT_FILE_LOCAL, MODELS_BEFORE_DETECTION_1)
         issues = check_issues(CLIENT_FILE_LOCAL)
-        process_image(CLIENT_FILE_LOCAL, PROCESSED_FILE_IN_S3, MODELS_AFTER_DETECTION)
+        process_image(CLIENT_FILE_LOCAL, MODELS_AFTER_DETECTION)
 
         # save results, overwriting the s3 file version
         s3.upload_file(CLIENT_FILE_LOCAL, S3_BUCKET, PROCESSED_FILE_IN_S3)
@@ -108,7 +166,7 @@ def upload_file():
     else:
         return "Illegal file extension", status.HTTP_400_BAD_REQUEST
 
-def process_image(local_file, processed_file_in_s3, models):
+def process_image(local_file, models):
 
     if not ensure_prereq():
         return "Failed loading in pre-req resources", status.HTTP_503_SERVICE_UNAVAILABLE
