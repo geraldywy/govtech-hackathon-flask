@@ -31,8 +31,6 @@ LANDMARKS_PICKED = [
 CANVAS_SCALING_WARN_THRESHOLD = 1.1
 
 
-
-
 def make_transform_matrix(
         scale_factor: float,
         ccw_rotate_rads: float,
@@ -155,6 +153,9 @@ class PortraitAutoTransform(ModelBaseClass):
 
         # init models
         self.face_detector = dlib.get_frontal_face_detector()
+        self.face_cascade_detector = cv2.CascadeClassifier(
+            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        )
         self.facial_landmark_predictor = dlib.shape_predictor(
             FACIAL_LANDMARK_MODEL_PATH
         )
@@ -178,9 +179,12 @@ class PortraitAutoTransform(ModelBaseClass):
         :param img: input image
         :return: landmarks as n x 2 array
         """
+        faces = self.face_cascade_detector.detectMultiScale(img, 1.1, 3, minSize=(30, 30))
+        (x, y, w, h) = faces[0]
+
         predicted_landmarks = self.facial_landmark_predictor(
             image=img,
-            box=self.face_detector(img)[0]
+            box=dlib.rectangle(x, y, x + w, y + h)
         )
         predicted_landmarks_arr = np.array([
             [predicted_landmarks.part(n).x, predicted_landmarks.part(n).y]
@@ -255,7 +259,7 @@ class PortraitAutoTransform(ModelBaseClass):
         """
         Fits landmarks of input image to the training image
         :param debug_mode: if true returns image with training landmarks in green and transformed landmarks in blue
-        :crop_inside_input_canvas: if true, crops the image strictly within the input canvas
+        :param crop_inside_input_canvas: if true, crops the image strictly within the input canvas
         :return: fitted image
         """
         img = cv2.imread(self.object_key)
