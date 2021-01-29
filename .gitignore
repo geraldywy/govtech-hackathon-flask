@@ -4,3 +4,4 @@ virt
 __pycache__
 .github
 resources
+.idea/*
